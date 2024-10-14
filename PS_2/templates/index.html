@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask NLP App</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;400;600;700&display=swap');
+        
+        * {
+            font-family: "Poppins", sans-serif;
+            box-sizing: border-box; /* Ensures padding is included in width */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            position: relative;
+            overflow: scroll; /* Prevents scrollbars */
+        }
+
+        /* Full-screen canvas for matrix background */
+        canvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+        }
+
+        /* Foreground content container */
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); /* Shadow for depth */
+            z-index: 1;
+            position: relative;
+            color: #5cb85c;
+            backdrop-filter: blur(6px); /* Apply blur effect */
+            background-color: rgba(255, 255, 255, 0.1); /* Semi-transparent background */
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #4cae4c;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+
+        .evidence {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrixCanvas"></canvas>
+
+    <div class="container">
+        <h1>Flask NLP App</h1>
+        <form id="query-form">
+            <div class="form-group">
+                <label for="query">Enter your query:</label>
+                <input type="text" id="query" name="query" required>
+            </div>
+            <button type="submit">Submit Query</button>
+        </form>
+
+        <div id="result" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size to fill the screen
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const characters = '01'; // Characters to display (0 and 1)
+        const fontSize = 20;
+        const columns = canvas.width / fontSize; // Number of columns based on canvas width
+        const drops = Array(Math.floor(columns)).fill(1); // An array of drops, one for each column
+
+        // Draw the matrix effect
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; // Fading background effect
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0f0'; // Green color for 0s and 1s
+            ctx.font = `${fontSize}px monospace`;
+
+            // Loop over drops array
+            for (let i = 0; i < drops.length; i++) {
+                const text = characters[Math.floor(Math.random() * characters.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                // Reset drop to the top or move it down
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.95) {
+                    drops[i] = 0;
+                }
+
+                drops[i]++;
+            }
+        }
+
+        // Update canvas size when window is resized
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            drops.length = Math.floor(canvas.width / fontSize); // Recalculate number of drops
+            drops.fill(1); // Reset all drops
+        });
+
+        // Animate the matrix effect every 50ms
+        setInterval(drawMatrix, 50);
+
+        // Handle form submission
+        document.getElementById('query-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const query = document.getElementById('query').value;
+
+            fetch('/query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ query: query }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('result');
+                
+                resultDiv.innerHTML = `
+                    <h3>Query Result:</h3>
+                    <p><strong>Query:</strong> ${data.query}</p>
+                    <p><strong>Question Type:</strong> ${data.question_type}</p>
+                    <p><strong>Answer:</strong> ${data.answer}</p>
+                `;
+
+                // Display evidence list
+                let evidenceHTML = '<h4>Evidence List:</h4>';
+                data.evidence_list.forEach((evidence) => {
+                    evidenceHTML += `
+                        <div class="evidence">
+                            <strong>Title:</strong> <a href="${evidence.url}" target="_blank">${evidence.title}</a><br>
+                            <strong>Author:</strong> ${evidence.author}<br>
+                            <strong>Source:</strong> ${evidence.source}<br>
+                            <strong>Category:</strong> ${evidence.category}<br>
+                            <strong>Published At:</strong> ${evidence.published_at}<br>
+                            <strong>Supporting Fact:</strong> ${evidence.fact}
+                        </div>
+                    `;
+                });
+                resultDiv.innerHTML += evidenceHTML;
+
+                resultDiv.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
