@@ -25,3 +25,31 @@ To tackle this we took all objects and their corrosponding adjectives pairs and 
 of image summary and user query such that the information missing in the user query (example-similar products,same products etc) get 
 replaced by object(if object info is missing ) of image summary or adjective(if adjective info is missing) of image summary.
 Which finally generates the web search query which goes into web search query.
+
+PS_2 - 
+Running the code - 
+Download Zip and you will get all files of ps_1 and ps_2 then check once app.py chunk_embeddings.npy chunks.json and templates floder
+check  templates floder contains index.html file 
+open app.py and run it 
+then you will get a local host server and just click on it !
+then in local host server you can enter your query
+
+Folder structure -
+..
+templates -> index.html
+app.py  
+chunk_embeddings.npy
+chunks.json
+
+Tech stack - 
+Models - Sentence Transformer - Mini LM (for chunk_embeddings).
+we used NLP for extracting named entities
+We used COSINE SIMILARITY for similarities of query embeddings and chunk embeddings
+
+Explanation - 
+Using the query embedding we are generated , we are vector searching through the whole corpus and generating the relevant chunks from articles and providing the other relevant meta data to the user .
+We are generating question type by finding out whether user wants a yes or no (comparision or temporal)
+Or if user wants a fact to know (inference query)
+ 
+
+
